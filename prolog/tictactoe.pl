@@ -1,6 +1,7 @@
 :- module(tictactoe, []).
 
 :- use_module(library(tty), [tty_clear/0]).
+:- use_module(library(terms), [mapargs/3]).
 
 :- initialization(main, main).
 
@@ -11,9 +12,9 @@ main(_) :-
     ).
 
 init_state(state(turn(x),
-                 board([cell(empty), cell(empty), cell(empty)],
-                       [cell(empty), cell(empty), cell(empty)],
-                       [cell(empty), cell(empty), cell(empty)]))).
+                 board(row(cell(empty), cell(empty), cell(empty)),
+                       row(cell(empty), cell(empty), cell(empty)),
+                       row(cell(empty), cell(empty), cell(empty))))).
 
 game_loop(State0) :-
     draw_board(State0),
@@ -42,7 +43,7 @@ draw_board(State) :-
     format("~s~w's turn", [Padding, Player]).
 
 render_board_line(Cells, Formatted) :-
-    maplist(render_cell, Cells, [C1, C2, C3]),
+    mapargs(render_cell, Cells, row(C1, C2, C3)),
     format(string(Formatted), "~s|~s|~s", [C1, C2, C3]).
 
 render_cell(cell(empty), " ").
@@ -61,8 +62,8 @@ handle_click(click(ScreenX, ScreenY), state(turn(Player), Board0), State1) :-
 
 update_board(Board0, Player, X-Y, Board1) :-
     arg(Y, Board0, Row),
-    nth1(X, Row, cell(empty)),
-    replace_nth1(X, Row, cell(Player), NewRow),
+    arg(X, Row, cell(empty)),
+    replace_arg(X, Row, cell(Player), NewRow),
     replace_arg(Y, Board0, NewRow, Board1).
 
 replace_arg(Arg, Term, NewVal, NewTerm) :-
