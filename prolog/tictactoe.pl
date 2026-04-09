@@ -18,12 +18,68 @@ init_state(state(turn(x),
 
 game_loop(State0) :-
     draw_board(State0),
-    ( repeat,
-      start_mouse_tracking,
-      read_mouse_event(Event),
-      stop_mouse_tracking,
-      handle_click(Event, State0, State1), !),
-    game_loop(State1).
+    ( game_over(State0, How)
+    -> display_game_over(How)
+    ; ( repeat,
+        start_mouse_tracking,
+        read_mouse_event(Event),
+        stop_mouse_tracking,
+        handle_click(Event, State0, State1), !),
+      game_loop(State1) ).
+
+% Horizontal winner
+game_over(state(_, Board), winner(P)) :-
+    between(1, 3, X),
+    setof(Cell,
+          Y^Row^( between(1, 3, Y),
+                arg(Y, Board, Row),
+                arg(X, Row, Cell)),
+          [cell(P)]),
+    P \= empty,
+    !.
+% Vertical winner
+game_over(state(_, Board), winner(P)) :-
+    between(1, 3, Y),
+    setof(Cell,
+          X^Row^( between(1, 3, X),
+                arg(Y, Board, Row),
+                arg(X, Row, Cell)),
+          [cell(P)]),
+    P \= empty,
+    !.
+% Diagonal 1
+game_over(state(_, Board), winner(P)) :-
+    setof(Cell,
+          XY^Row^( between(1, 3, XY),
+                arg(XY, Board, Row),
+                arg(XY, Row, Cell)),
+          [cell(P)]),
+    P \= empty,
+    !.
+% Diagonal 2
+game_over(state(_, Board), winner(P)) :-
+    setof(Cell,
+          X^Y^Row^( member(X-Y, [1-3, 2-2, 3-1]),
+                arg(Y, Board, Row),
+                arg(X, Row, Cell)),
+          [cell(P)]),
+    P \= empty,
+    !.
+% draw
+game_over(state(_, Board), draw) :-
+    forall(( between(1, 3, X),
+             between(1, 3, Y) ),
+          ( arg(Y, Board, Row),
+            arg(X, Row, Cell),
+            Cell \= cell(empty) )
+          ).
+
+display_game_over(draw) :-
+    format("~nTie game :S~n", []),
+    sleep(2).
+display_game_over(winner(Player)) :-
+    format("~n~w wins!~n", [Player]),
+    sleep(2).
 
 draw_board(State) :-
     tty_clear,
