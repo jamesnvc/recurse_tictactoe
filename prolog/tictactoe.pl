@@ -1,0 +1,116 @@
+:- module(tictactoe, []).
+
+:- use_module(library(tty), [tty_clear/0]).
+
+:- initialization(main, main).
+
+main(_) :-
+    init_state(StateI),
+    with_tty_raw(
+        game_loop(StateI)
+    ).
+
+init_state(state(turn(x),
+                 board([cell(empty), cell(empty), cell(empty)],
+                       [cell(empty), cell(empty), cell(empty)],
+                       [cell(empty), cell(empty), cell(empty)]))).
+
+game_loop(State0) :-
+    draw_board(State0),
+    ( repeat,
+      start_mouse_tracking,
+      read_mouse_event(Event),
+      stop_mouse_tracking,
+      handle_click(Event, State0, State1), !),
+    game_loop(State1).
+
+draw_board(State) :-
+    tty_clear,
+    grid_padding(XPad, YPad),
+    tty_goto(0, YPad),
+
+    State = state(turn(Player), board(L1, L2, L3)),
+    length(Padding, XPad),
+    maplist(=(0' ), Padding),
+    maplist(render_board_line, [L1, L2, L3], [L1r, L2r, L3r]),
+    format("~s~s~s~n", [Padding, L1r, Padding]),
+    format("~s-+-+-~s~n", [Padding, Padding]),
+    format("~s~s~s~n", [Padding, L2r, Padding]),
+    format("~s-+-+-~s~n", [Padding, Padding]),
+    format("~s~s~s~n", [Padding, L3r, Padding]),
+
+    format("~s~w's turn", [Padding, Player]).
+
+render_board_line(Cells, Formatted) :-
+    maplist(render_cell, Cells, [C1, C2, C3]),
+    format(string(Formatted), "~s|~s|~s", [C1, C2, C3]).
+
+render_cell(cell(empty), " ").
+render_cell(cell(x), "X").
+render_cell(cell(o), "O").
+
+%! handle_click(+ScreenClick, +OldState, -NewState) is semidet.
+%
+%  Update the state based on the click. Fails if invalid (click out of
+%  bounds, click on already-occupied cell).
+handle_click(click(ScreenX, ScreenY), state(turn(Player), Board0), State1) :-
+    screen_to_grid(ScreenX-ScreenY, X-Y),
+    update_board(Board0, Player, X-Y, Board),
+    next_player(Player, Player1),
+    State1 = state(turn(Player1), Board).
+
+update_board(Board0, Player, X-Y, Board1) :-
+    arg(Y, Board0, Row),
+    nth1(X, Row, cell(empty)),
+    replace_nth1(X, Row, cell(Player), NewRow),
+    replace_arg(Y, Board0, NewRow, Board1).
+
+replace_arg(Arg, Term, NewVal, NewTerm) :-
+    compound_name_arguments(Term, Name, Args),
+    replace_nth1(Arg, Args, NewVal, NewArgs),
+    compound_name_arguments(NewTerm, Name, NewArgs).
+
+replace_nth1(Index1, List, NewElem, NewList) :-
+    nth1(Index1, List, _, Transfer),
+    nth1(Index1, NewList, NewElem, Transfer).
+
+screen_to_grid(Sx-Sy, Gx-Gy) :-
+    catch(tty_size(Rows, Cols), _, ( Rows = 0, Cols = 0)),
+    grid_padding(XPad, YPad),
+    XPadEnd is XPad + 5, between(XPad, XPadEnd, Sx),
+    YPadEnd is YPad + 5, between(YPad, YPadEnd, Sy),
+    % Even grid numbers are lines
+    1 is (Sx - XPad) mod 2,
+    1 is (Sy - YPad) mod 2,
+    % divided by two to account for grid lines
+    Gx is ceil((Sx - XPad) / 2),
+    Gy is ceil((Sy - YPad) / 2).
+
+next_player(x, o).
+next_player(o, x).
+
+%% Terminal stuff
+
+grid_padding(XPad, YPad) :-
+    catch(tty_size(Rows, Cols), _, ( Rows = 0, Cols = 0)),
+    XPad is floor(max(0, Cols - 5) / 2),
+    YPad is ceil(max(0, Rows - 5) / 2).
+
+start_mouse_tracking :- format('\e[?1000;1006;1015h', []).
+stop_mouse_tracking :- format('\e[?1000;1006;1015l', []).
+
+read_mouse_event(E) :-
+    repeat,
+    read_chars_until([0'm, 0'M], [0'\e, 0'[, 0'3, 0'5, 0';|Rest]),
+    append(XCodes, [0';|YCodes], Rest),
+    !,
+    number_codes(XPos, XCodes),
+    number_codes(YPos, YCodes),
+    E = click(XPos, YPos).
+
+read_chars_until(EndCodes, Codes) :-
+    get_single_char(Code),
+    ( memberchk(Code, EndCodes)
+    -> Codes = []
+    ; Codes = [Code|NextCodes],
+      read_chars_until(EndCodes, NextCodes) ).
