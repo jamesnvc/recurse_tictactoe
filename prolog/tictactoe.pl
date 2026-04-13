@@ -20,12 +20,28 @@ game_loop(State0) :-
     draw_board(State0),
     ( game_over(State0, How)
     -> display_game_over(How)
-    ; ( repeat,
-        start_mouse_tracking,
-        read_mouse_event(Event),
-        stop_mouse_tracking,
-        handle_click(Event, State0, State1), !),
+    ; get_next_state(State0, State1),
       game_loop(State1) ).
+
+get_next_state(state(turn(x), Board), State1) :-
+    play_human_move(state(turn(x), Board), State1).
+get_next_state(state(turn(o), Board), State1) :-
+    play_robot_move(state(turn(o), Board), State1).
+
+play_robot_move(state(turn(Me), Board), State1) :-
+    arg(Y, Board, Row),
+    arg(X, Row, cell(empty)),
+    replace_arg(X, Row, cell(Me), NewRow),
+    replace_arg(Y, Board, NewRow, NewBoard),
+    next_player(Me, NextPlayer),
+    State1 = state(turn(NextPlayer), NewBoard).
+
+play_human_move(State0, State1) :-
+    repeat,
+    start_mouse_tracking,
+    read_mouse_event(Event),
+    stop_mouse_tracking,
+    handle_click(Event, State0, State1), !.
 
 % Horizontal winner
 game_over(state(_, Board), winner(P)) :-
@@ -154,7 +170,7 @@ grid_padding(XPad, YPad) :-
     YPad is ceil(max(0, Rows - 5) / 2).
 
 start_mouse_tracking :- format('\e[?1000;1006;1015h', []).
-stop_mouse_tracking :- format('\e[?1000;1006;1015l', []).
+stop_mouse_tracking  :- format('\e[?1000;1006;1015l', []).
 
 read_mouse_event(E) :-
     repeat,
@@ -168,6 +184,7 @@ read_mouse_event(E) :-
 read_chars_until(EndCodes, Codes) :-
     get_single_char(Code),
     ( memberchk(Code, EndCodes)
-    -> Codes = []
+    -> Codes = [] % arguably `Codes = [Code]` makes more sense...but this is more
+                  % convenient in this particular case
     ; Codes = [Code|NextCodes],
       read_chars_until(EndCodes, NextCodes) ).
