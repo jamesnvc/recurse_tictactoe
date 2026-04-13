@@ -105,6 +105,9 @@ display_game_over(winner(Player)) :-
 draw_board(State) :-
     tty_clear,
     grid_padding(XPad, YPad),
+
+    board_decoration,
+
     tty_goto(0, YPad),
 
     State = state(turn(Player), board(L1, L2, L3)),
@@ -118,6 +121,23 @@ draw_board(State) :-
     format("~s~s~s~n", [Padding, L3r, Padding]),
 
     format("~s~w's turn", [Padding, Player]).
+
+board_decoration :-
+    catch(tty_size(Rows, Cols), _, ( Rows = 0, Cols = 0)),
+    MaxX is Cols - 2,
+    MaxY is Rows - 2,
+
+    tty_goto(0, 0),
+    format("~s", ["🏳️‍⚧️"]),
+
+    tty_goto(MaxX, MaxY),
+    format("~s", ["🏳️‍⚧️"]),
+
+    tty_goto(0, MaxY),
+    format("~s", ["🏳️‍🌈"]),
+    
+    tty_goto(MaxX, 0),
+    format("~s", ["🏳️‍🌈"]).
 
 render_board_line(Cells, Formatted) :-
     mapargs(render_cell, Cells, row(C1, C2, C3)),
