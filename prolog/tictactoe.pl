@@ -128,16 +128,20 @@ board_decoration :-
     MaxY is Rows - 2,
 
     tty_goto(0, 0),
-    format("~s", ["🏳️‍⚧️"]),
+
+    TransFlagCodes = [127987, 65039, 8205, 9895, 65039],
+
+    format("~s", [TransFlagCodes]),
 
     tty_goto(MaxX, MaxY),
-    format("~s", ["🏳️‍⚧️"]),
+    format("~s", [TransFlagCodes]),
 
+    RainbowFlagCodes = [127987, 65039, 8205, 127752],
     tty_goto(0, MaxY),
-    format("~s", ["🏳️‍🌈"]),
-    
+    format("~s", [RainbowFlagCodes]),
+
     tty_goto(MaxX, 0),
-    format("~s", ["🏳️‍🌈"]).
+    format("~s", [RainbowFlagCodes]).
 
 render_board_line(Cells, Formatted) :-
     mapargs(render_cell, Cells, row(C1, C2, C3)),
