@@ -2,6 +2,7 @@
 
 :- use_module(library(tty), [tty_clear/0]).
 :- use_module(library(terms), [mapargs/3]).
+:- use_module(library(random), [random_member/2]).
 
 :- initialization(main, main).
 
@@ -29,8 +30,12 @@ get_next_state(state(turn(o), Board), State1) :-
     play_robot_move(state(turn(o), Board), State1).
 
 play_robot_move(state(turn(Me), Board), State1) :-
+    findall(Xe-Ye,
+            ( arg(Ye, Board, Row),
+              arg(Xe, Row, cell(empty)) ),
+            EmptyCellCoords),
+    random_member(X-Y, EmptyCellCoords),
     arg(Y, Board, Row),
-    arg(X, Row, cell(empty)),
     replace_arg(X, Row, cell(Me), NewRow),
     replace_arg(Y, Board, NewRow, NewBoard),
     next_player(Me, NextPlayer),
