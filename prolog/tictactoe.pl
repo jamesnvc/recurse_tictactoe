@@ -129,19 +129,20 @@ board_decoration :-
 
     tty_goto(0, 0),
 
-    TransFlagCodes = [127987, 65039, 8205, 9895, 65039],
+    TransFlag = "🏳️‍⚧️",
 
-    format("~s", [TransFlagCodes]),
+    format("~s", [TransFlag]),
 
     tty_goto(MaxX, MaxY),
-    format("~s", [TransFlagCodes]),
+    format("~s", [TransFlag]),
 
-    RainbowFlagCodes = [127987, 65039, 8205, 127752],
+    PrideFlag = "🏳️‍🌈",
+
     tty_goto(0, MaxY),
-    format("~s", [RainbowFlagCodes]),
+    format("~s", [PrideFlag]),
 
     tty_goto(MaxX, 0),
-    format("~s", [RainbowFlagCodes]).
+    format("~s", [PrideFlag]).
 
 render_board_line(Cells, Formatted) :-
     mapargs(render_cell, Cells, row(C1, C2, C3)),
